@@ -7,6 +7,8 @@ export default function Login() {
     "use server";
     console.log(formData.get("email"), formData.get("password"));
     console.log("i run in the server!");
+    // 지연시간 추가
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   };
 
   return (
@@ -33,10 +35,7 @@ export default function Login() {
           required
           errors={[]}
         />
-        <FormButton
-          loading={false}
-          text="Create account"
-        />
+        <FormButton text="Create account" />
       </form>
 
       <SocialLogin />
