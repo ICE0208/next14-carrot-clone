@@ -24,14 +24,12 @@ export default function Login() {
           type="email"
           placeholder="Email"
           required
-          errors={[]}
         />
         <FormInput
           name="password"
           type="password"
           placeholder="Password"
           required
-          errors={state?.error ?? []}
         />
         <FormButton text="Create account" />
       </form>
