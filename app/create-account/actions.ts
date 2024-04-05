@@ -5,6 +5,7 @@ import {
   PASSWORD_REGEX,
   PASSWORD_REGEX_ERROR,
 } from "@/lib/constants";
+import db from "@/lib/db";
 import { z } from "zod";
 
 const checkUsername = (username: string) => {
@@ -19,6 +20,29 @@ const checkPasswords = ({
   confirmPassword: string;
 }) => password === confirmPassword;
 
+const checkUniqueUsername = async (username: string) => {
+  const user = await db.user.findUnique({
+    where: {
+      username,
+    },
+    select: {
+      id: true,
+    },
+  });
+  return user ? false : true;
+};
+const checkUniqueEmail = async (email: string) => {
+  const user = await db.user.findUnique({
+    where: {
+      email,
+    },
+    select: {
+      id: true,
+    },
+  });
+  return user ? false : true;
+};
+
 const formSchema = z
   .object({
     username: z
@@ -29,8 +53,12 @@ const formSchema = z
       .toLowerCase()
       .trim()
       .refine(checkUsername, "No potato allowed!")
-      .transform((username) => `🔥 ${username} 🔥`),
-    email: z.string().email().toLowerCase(),
+      .refine(checkUniqueUsername, "This username is already taken"),
+    email: z
+      .string()
+      .email()
+      .toLowerCase()
+      .refine(checkUniqueEmail, "This Email is already taken"),
     password: z.string().min(4).regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
     confirmPassword: z.string().min(PASSWORD_MIN_LENGTH),
   })
@@ -38,7 +66,6 @@ const formSchema = z
     message: "Both passwords should be the same!",
     path: ["confirmPassword"],
   });
-
 export async function createAccount(prevState: any, formData: FormData) {
   const data = {
     username: formData.get("username"),
@@ -47,10 +74,13 @@ export async function createAccount(prevState: any, formData: FormData) {
     confirmPassword: formData.get("comfirmPassword"),
   };
 
-  const result = formSchema.safeParse(data);
+  const result = await formSchema.safeParseAsync(data);
   if (!result.success) {
     return result.error.flatten();
   } else {
-    console.log(result.data);
+    // 비밀번호 해시
+    // db에 저장
+    // 로그인
+    // 리다이렉트 to home
   }
 }
