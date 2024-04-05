@@ -1,7 +1,7 @@
 "use client";
 
-import FormInput from "@/components/form-input";
-import FormButton from "@/components/forn-btn";
+import FormInput from "@/components/input";
+import Button from "@/components/button";
 import SocialLogin from "@/components/social-login";
 import { useFormState } from "react-dom";
 import { handleForm } from "./actions";
@@ -31,7 +31,7 @@ export default function Login() {
           placeholder="Password"
           required
         />
-        <FormButton text="Create account" />
+        <Button text="Create account" />
       </form>
 
       <SocialLogin />
