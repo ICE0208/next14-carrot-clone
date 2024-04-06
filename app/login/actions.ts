@@ -10,8 +10,28 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import getSession from "@/lib/session";
 import { redirect } from "next/navigation";
+import validator from "validator";
 
-const checkEmailExist = async (email: string) => {
+const checkIsEmail = async (
+  { email }: { email: string },
+  ctx: z.RefinementCtx
+) => {
+  const isEmail = validator.isEmail(email);
+  if (!isEmail) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Invalid email",
+      path: ["email"],
+      fatal: true,
+    });
+    return z.NEVER;
+  }
+};
+
+const checkEmailExist = async (
+  { email }: { email: string },
+  ctx: z.RefinementCtx
+) => {
   const user = await db.user.findUnique({
     where: {
       email,
@@ -20,23 +40,29 @@ const checkEmailExist = async (email: string) => {
       id: true,
     },
   });
-
-  return Boolean(user);
+  if (!user) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Account with this email does not exist.",
+      path: ["email"],
+      fatal: true,
+    });
+    return z.NEVER;
+  }
 };
 
-const formSchema = z.object({
-  email: z
-    .string()
-    .email()
-    .toLowerCase()
-    .refine(checkEmailExist, "Account with this email does not exist."),
-  password: z
-    .string({
-      required_error: "Password is required",
-    })
-    .min(PASSWORD_MIN_LENGTH)
-    .regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
-});
+const formSchema = z
+  .object({
+    email: z.string().toLowerCase(),
+    password: z
+      .string({
+        required_error: "Password is required",
+      })
+      .min(PASSWORD_MIN_LENGTH)
+      .regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
+  })
+  .superRefine(checkIsEmail)
+  .superRefine(checkEmailExist);
 
 export const login = async (prevState: any, formData: FormData) => {
   const data = {
@@ -73,7 +99,7 @@ export const login = async (prevState: any, formData: FormData) => {
       // 비밀번호 ok -> LOGIN
       const session = await getSession();
       session.id = user!.id;
-      session.save();
+      await session.save();
       redirect("/profile");
     } else {
       // 비밀번호 not ok -> ERROR

@@ -8,8 +8,6 @@ import {
 import db from "@/lib/db";
 import { z } from "zod";
 import bcrypt from "bcrypt";
-import { getIronSession } from "iron-session";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import getSession from "@/lib/session";
 
@@ -25,7 +23,10 @@ const checkPasswords = ({
   confirmPassword: string;
 }) => password === confirmPassword;
 
-const checkUniqueUsername = async (username: string) => {
+const checkUniqueUsername = async (
+  { username }: { username: string },
+  ctx: z.RefinementCtx
+) => {
   const user = await db.user.findUnique({
     where: {
       username,
@@ -34,9 +35,20 @@ const checkUniqueUsername = async (username: string) => {
       id: true,
     },
   });
-  return user ? false : true;
+  if (user) {
+    ctx.addIssue({
+      code: "custom",
+      message: "This username is already taken",
+      path: ["username"],
+      fatal: true,
+    });
+    return z.NEVER;
+  }
 };
-const checkUniqueEmail = async (email: string) => {
+const checkUniqueEmail = async (
+  { email }: { email: string },
+  ctx: z.RefinementCtx
+) => {
   const user = await db.user.findUnique({
     where: {
       email,
@@ -45,7 +57,15 @@ const checkUniqueEmail = async (email: string) => {
       id: true,
     },
   });
-  return user ? false : true;
+  if (user) {
+    ctx.addIssue({
+      code: "custom",
+      message: "This email is already taken",
+      path: ["email"],
+      fatal: true,
+    });
+    return z.NEVER;
+  }
 };
 
 const formSchema = z
@@ -57,20 +77,18 @@ const formSchema = z
       })
       .toLowerCase()
       .trim()
-      .refine(checkUsername, "No potato allowed!")
-      .refine(checkUniqueUsername, "This username is already taken"),
-    email: z
-      .string()
-      .email()
-      .toLowerCase()
-      .refine(checkUniqueEmail, "This Email is already taken"),
+      .refine(checkUsername, "No potato allowed!"),
+    email: z.string().email().toLowerCase(),
     password: z.string().min(4).regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
     confirmPassword: z.string().min(PASSWORD_MIN_LENGTH),
   })
+  .superRefine(checkUniqueUsername)
+  .superRefine(checkUniqueEmail)
   .refine(checkPasswords, {
     message: "Both passwords should be the same!",
     path: ["confirmPassword"],
   });
+
 export async function createAccount(prevState: any, formData: FormData) {
   const data = {
     username: formData.get("username"),
