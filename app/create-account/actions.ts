@@ -7,6 +7,7 @@ import {
 } from "@/lib/constants";
 import db from "@/lib/db";
 import { z } from "zod";
+import bcrypt from "bcrypt";
 
 const checkUsername = (username: string) => {
   return !username.includes("potato");
@@ -79,7 +80,22 @@ export async function createAccount(prevState: any, formData: FormData) {
     return result.error.flatten();
   } else {
     // 비밀번호 해시
+    const hashedPassword = await bcrypt.hash(result.data.password, 12);
+
     // db에 저장
+    const user = await db.user.create({
+      data: {
+        username: result.data.username,
+        email: result.data.email,
+        password: hashedPassword,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    console.log(user);
+
     // 로그인
     // 리다이렉트 to home
   }
