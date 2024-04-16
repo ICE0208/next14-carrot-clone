@@ -35,7 +35,7 @@ export default function Login() {
           required
           errors={state?.fieldErrors.password}
         />
-        <Button text="Create account" />
+        <Button text="Login" />
       </form>
 
       <SocialLogin />
