@@ -27,6 +27,7 @@ export default function ListProduct({
           src={photo}
           alt={title}
           fill
+          className="object-cover"
         />
       </div>
       <div className="flex flex-col gap-1 *:text-white">
