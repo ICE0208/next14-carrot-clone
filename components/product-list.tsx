@@ -12,12 +12,19 @@ interface ProductListProps {
 export default function ProductList({ initialProducts }: ProductListProps) {
   const [products, setProducts] = useState(initialProducts);
   const [isLoading, setIsLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [isLastPage, setIsLastPage] = useState(false);
 
   const onLoadMoreClick = async () => {
     if (isLoading) return;
     setIsLoading(true);
-    const newProducts = await getMoreProducts(1);
-    setProducts((prev) => [...prev, ...newProducts]);
+    const newProducts = await getMoreProducts(page + 1);
+    if (newProducts.length !== 0) {
+      setPage((prev) => prev + 1);
+      setProducts((prev) => [...prev, ...newProducts]);
+    } else {
+      setIsLastPage(true);
+    }
     setIsLoading(false);
   };
 
@@ -29,12 +36,14 @@ export default function ProductList({ initialProducts }: ProductListProps) {
           {...product}
         />
       ))}
-      <button
-        disabled={isLoading}
-        onClick={onLoadMoreClick}
-      >
-        {isLoading ? "Loading..." : "Load more"}
-      </button>
+      {!isLastPage && (
+        <button
+          disabled={isLoading}
+          onClick={onLoadMoreClick}
+        >
+          {isLoading ? "Loading..." : "Load more"}
+        </button>
+      )}
     </div>
   );
 }
